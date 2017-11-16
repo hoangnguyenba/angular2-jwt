@@ -7,6 +7,7 @@ import {
 } from '@angular/common/http';
 import { JwtHelperService } from './jwthelper.service';
 import { JWT_OPTIONS } from './jwtoptions.token';
+import { WhitelistDomain } from './whitelist-domain.model';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/mergeMap';
@@ -16,7 +17,7 @@ export class JwtInterceptor implements HttpInterceptor {
   tokenGetter: () => string | Promise<string>;
   headerName: string;
   authScheme: string;
-  whitelistedDomains: Array<string | RegExp>;
+  whitelistedDomains: Array<string | WhitelistDomain | RegExp>;
   throwNoTokenError: boolean;
   skipWhenExpired: boolean;
 
@@ -37,14 +38,32 @@ export class JwtInterceptor implements HttpInterceptor {
 
   isWhitelistedDomain(request: HttpRequest<any>): boolean {
     let requestUrl: URL;
+    const isStringMatch: Function = (value: string | RegExp, source: string): boolean => {
+      if (typeof value === 'string') {
+        return value === source;
+      } else if (value instanceof RegExp) {
+        return value.test(source);
+      } else {
+        return false;
+      }
+    };
+
     try {
       requestUrl = new URL(request.url);
       return (
         this.whitelistedDomains.findIndex(
-          domain =>
-            typeof domain === 'string'
-              ? domain === requestUrl.host
-              : domain instanceof RegExp ? domain.test(requestUrl.host) : false
+          item => {
+            if ((item as WhitelistDomain).domain !== undefined) {
+              if (Array.isArray((item as WhitelistDomain).paths)) {
+                return (item as WhitelistDomain).paths.reduce((result, path) =>
+                  isStringMatch((item as WhitelistDomain).domain, requestUrl.host)
+                  && isStringMatch(path, requestUrl.pathname)
+                );
+              }
+            } else {
+              return isStringMatch(item, requestUrl.host);
+            }
+          }
         ) > -1
       );
     } catch (err) {
