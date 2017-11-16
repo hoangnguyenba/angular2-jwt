@@ -38,15 +38,12 @@ export class JwtInterceptor implements HttpInterceptor {
 
   isWhitelistedDomain(request: HttpRequest<any>): boolean {
     let requestUrl: URL;
-    const isStringMatch: Function = (value: string | RegExp, source: string): boolean => {
-      if (typeof value === 'string') {
-        return value === source;
-      } else if (value instanceof RegExp) {
-        return value.test(source);
-      } else {
-        return false;
-      }
-    };
+    const isStringMatch: Function = (value: string | RegExp, source: string): boolean =>
+      typeof value === 'string'
+        ? value === source
+        : value instanceof RegExp
+          ? value.test(source)
+          : false;
 
     try {
       requestUrl = new URL(request.url);
