@@ -5,7 +5,7 @@
   "scripts": {
     "prepublish": "ngc && npm run build",
     "build": "webpack",
-    "postinstall": "postinstall-build bundles"
+    "postinstall": "postinstall-build bundles --script build"
   },
   "repository": {
     "type": "git",
