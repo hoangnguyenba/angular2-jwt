@@ -80,6 +80,8 @@ export class JwtInterceptor implements HttpInterceptor {
           ? next.handle(request)
           : next.handle(httpRequest);
       }
+    } else {
+      return next.handle(httpRequest);
     }
   }
 
