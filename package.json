@@ -3,9 +3,8 @@
   "version": "1.0.0-beta.9",
   "description": "JSON Web Token helper library for Angular",
   "scripts": {
-    "prepublish": "ngc && npm run build",
     "build": "webpack",
-    "postinstall": "postinstall-build bundles --script build"
+    "postinstall": "postinstall-build bundles --script build --verbose"
   },
   "repository": {
     "type": "git",
