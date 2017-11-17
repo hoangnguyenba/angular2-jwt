@@ -4,8 +4,8 @@
   "description": "JSON Web Token helper library for Angular",
   "scripts": {
     "prepublish": "ngc && npm run build",
-    "postinstall": "npm run prepublish",
-    "build": "webpack"
+    "build": "webpack",
+    "postinstall": "postinstall-build bundles"
   },
   "repository": {
     "type": "git",
@@ -60,5 +60,8 @@
     "typescript": "2.3.3",
     "webpack": "3.1.0",
     "zone.js": "0.8.11"
+  },
+  "dependencies": {
+    "postinstall-build": "^5.0.1"
   }
 }
