@@ -4,6 +4,7 @@
   "description": "JSON Web Token helper library for Angular",
   "scripts": {
     "prepublish": "ngc && npm run build",
+    "postinstall": "npm run prepublish",
     "build": "webpack"
   },
   "repository": {
