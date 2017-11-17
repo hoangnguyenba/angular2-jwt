@@ -22,6 +22,16 @@
     "url": "https://github.com/auth0/angular2-jwt/issues"
   },
   "main": "bundles/core.umd.js",
+  "files": [
+    "bundles",
+    "config",
+    "src",
+    "index.d.ts",
+    "index.ts",
+    "tsconfig.json",
+    "tslint.json",
+    "webpack.config.js"
+  ],
   "module": "index.js",
   "typings": "index.d.ts",
   "homepage": "https://github.com/auth0/angular2-jwt",
