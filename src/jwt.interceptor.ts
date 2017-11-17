@@ -7,7 +7,6 @@ import {
 } from '@angular/common/http';
 import { JwtHelperService } from './jwthelper.service';
 import { JWT_OPTIONS } from './jwtoptions.token';
-import { WhitelistDomain } from './whitelist-domain.model';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/operator/mergeMap';
@@ -17,7 +16,7 @@ export class JwtInterceptor implements HttpInterceptor {
   tokenGetter: () => string | Promise<string>;
   headerName: string;
   authScheme: string;
-  whitelistedDomains: Array<string | WhitelistDomain | RegExp>;
+  whitelistPredicate: (request: HttpRequest<any>) => boolean | Promise<boolean> | Observable<boolean>;
   throwNoTokenError: boolean;
   skipWhenExpired: boolean;
 
@@ -31,52 +30,18 @@ export class JwtInterceptor implements HttpInterceptor {
       config.authScheme || config.authScheme === ''
         ? config.authScheme
         : 'Bearer ';
-    this.whitelistedDomains = config.whitelistedDomains || [];
+    this.whitelistPredicate = config.whitelistPredicate || (() => true);
     this.throwNoTokenError = config.throwNoTokenError || false;
     this.skipWhenExpired = config.skipWhenExpired;
   }
 
-  isWhitelistedDomain(request: HttpRequest<any>): boolean {
-    let requestUrl: URL;
-    const isStringMatch: Function = (value: string | RegExp, source: string): boolean =>
-      typeof value === 'string'
-        ? value === source
-        : value instanceof RegExp
-          ? value.test(source)
-          : false;
-
-    try {
-      requestUrl = new URL(request.url);
-      return (
-        this.whitelistedDomains.findIndex(
-          item => {
-            if ((item as WhitelistDomain).domain !== undefined) {
-              if (Array.isArray((item as WhitelistDomain).paths)) {
-                return (item as WhitelistDomain).paths.reduce((result, path) =>
-                  isStringMatch((item as WhitelistDomain).domain, requestUrl.host)
-                  && isStringMatch(path, requestUrl.pathname)
-                );
-              }
-            } else {
-              return isStringMatch(item, requestUrl.host);
-            }
-          }
-        ) > -1
-      );
-    } catch (err) {
-      // if we're here, the request is made
-      // to the same domain as the Angular app
-      // so it's safe to proceed
-      return true;
-    }
-  }
-
   handleInterception(
     token: string,
-    request: HttpRequest<any>,
+    httpRequest: HttpRequest<any>,
     next: HttpHandler
   ) {
     let tokenIsExpired: boolean;
+    let request: HttpRequest<any>;
 
     if (!token && this.throwNoTokenError) {
       throw new Error('Could not get token from tokenGetter function.');
@@ -87,15 +52,35 @@ export class JwtInterceptor implements HttpInterceptor {
     }
 
     if (token && tokenIsExpired && this.skipWhenExpired) {
-      request = request.clone();
-    } else if (token && this.isWhitelistedDomain(request)) {
-      request = request.clone({
+      request = httpRequest.clone();
+      return next.handle(request);
+    } else if (token) {
+      const isWhitelisted = this.whitelistPredicate(httpRequest);
+
+      request = httpRequest.clone({
         setHeaders: {
           [this.headerName]: `${this.authScheme}${token}`
         }
       });
+
+      if (isWhitelisted instanceof Observable) {
+        return isWhitelisted
+          .mergeMap((result) => result
+            ? next.handle(request)
+            : next.handle(httpRequest)
+          );
+      } else if (isWhitelisted instanceof Promise) {
+        return Observable.fromPromise(isWhitelisted)
+          .mergeMap((result) => result
+            ? next.handle(request)
+            : next.handle(httpRequest)
+          );
+      } else {
+        return isWhitelisted
+          ? next.handle(request)
+          : next.handle(httpRequest);
+      }
     }
-    return next.handle(request);
   }
 
   intercept(
